@@ -2,164 +2,221 @@
 
 ## 🚀 Запуск за 5 минут
 
-### Требования
-- Docker и Docker Compose установлены
-- Git
+Я создал этот проект как демонстрацию своих навыков в разработке микросервисной архитектуры на Go. Вот как его запустить и посмотреть, как всё работает.
 
-### Шаг 1: Клонируйте репозиторий
+### Что вам понадобится
+
+- Docker и Docker Compose (чтобы не устанавливать PostgreSQL и Redis вручную)
+- Git (чтобы клонировать репозиторий)
+- Curl или Postman (для тестирования API)
+
+### Быстрый старт (3 шага)
+
+#### Шаг 1: Клонируйте и перейдите в папку проекта
+
 ```bash
 git clone https://github.com/Alliazix/go-microservices.git
 cd go-microservices
 ```
 
-### Шаг 2: Запустите сервисы
+#### Шаг 2: Запустите все сервисы
+
 ```bash
 docker-compose up --build
 ```
 
-Ожидайте, пока все сервисы будут готовы (вы увидите сообщения "Notification Service started successfully" и "Order Service started successfully")
+Дождитесь, пока вы увидите в логах сообщения вроде:
+```
+order-service_1        | Order Service started on :8080
+notification-service_1 | Notification Service started on :8081
+```
 
-### Шаг 3: Протестируйте
+#### Шаг 3: Протестируйте API
 
-#### Терминал 1: Создайте заказ
+Откройте несколько терминалов и попробуйте следующие команды:
+
+### Тестирование в действии
+
+#### 1️⃣ Создайте заказ (Терминал 1)
+
 ```bash
 curl -X POST http://localhost:8080/api/orders \
   -H "Content-Type: application/json" \
   -d '{
     "customer_name": "John Doe",
-    "product": "Laptop",
+    "product": "Ноутбук",
     "quantity": 1,
     "price": 999.99
   }'
 ```
 
-Вы получите ответ:
+Вы получите ответ с ID заказа:
 ```json
 {
   "success": true,
   "data": {
-    "id": "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx",
+    "id": "550e8400-e29b-41d4-a716-446655440000",
     "customer_name": "John Doe",
-    "product": "Laptop",
-    ...
+    "product": "Ноутбук",
+    "quantity": 1,
+    "price": 999.99,
+    "status": "created",
+    "created_at": "2026-08-12T15:30:00Z"
   }
 }
 ```
 
-#### Терминал 2: Получите уведомления
+#### 2️⃣ Получите список уведомлений (Терминал 2)
+
+Сразу же откройте другой терминал и проверьте уведомления:
+
 ```bash
 curl http://localhost:8081/api/notifications | jq .
 ```
 
-Вы должны увидеть уведомление о созданном заказе!
+Вы увидите, что Notification Service **асинхронно** обработал событие создания заказа через Redis! Вот в чём вся прелесть микросервисной архитектуры 😎
 
-#### Терминал 3: Отмените заказ
-```bash
-curl -X PATCH http://localhost:8080/api/orders/{order-id}/cancel
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "notification-001",
+      "order_id": "550e8400-e29b-41d4-a716-446655440000",
+      "message": "Заказ успешно создан",
+      "type": "order_created",
+      "created_at": "2026-08-12T15:30:01Z"
+    }
+  ]
+}
 ```
 
-#### Терминал 4: Проверьте уведомления снова
+#### 3️⃣ Отмените заказ (Терминал 1)
+
+```bash
+curl -X PATCH http://localhost:8080/api/orders/550e8400-e29b-41d4-a716-446655440000/cancel
+```
+
+#### 4️⃣ Снова проверьте уведомления (Терминал 2)
+
 ```bash
 curl http://localhost:8081/api/notifications | jq .
 ```
 
-Теперь вы увидите также уведомление об отмене!
+Теперь вы увидите **два** уведомления — одно о создании, одно об отмене. Вот так event-driven архитектура работает на практике!
 
-## 📊 URLs сервисов
+## 📊 Где что находится
 
-| Сервис | URL | Назначение |
+| Сервис | URL | Что там |
 |---------|-----|---------|
-| **Order Service** | http://localhost:8080 | Создание и управление заказами |
-| **Notification Service** | http://localhost:8081 | Просмотр уведомлений |
-| **PostgreSQL** | localhost:5432 | База данных |
-| **Redis** | localhost:6379 | Очередь сообщений |
+| **Order Service** | http://localhost:8080 | REST API для управления заказами |
+| **Notification Service** | http://localhost:8081 | API для просмотра уведомлений |
+| **PostgreSQL** | localhost:5432 | БД (пользователь: postgres, пароль: postgres) |
+| **Redis** | localhost:6379 | Message Queue для общения между сервисами |
 
-## 🛠️ Полезные команды
+## 🛠️ Часто используемые команды
 
-### Используя Make (если установлен)
+### Docker Compose команды
+
 ```bash
-make up              # Запустить сервисы
-make down            # Остановить сервисы
-make logs            # Просмотр логов
-make seed-order      # Создать тестовый заказ
-make get-orders      # Список всех заказов
-make get-notifications  # Список всех уведомлений
+# Запустить сервисы в фоне
+docker-compose up -d
+
+# Посмотреть логи всех сервисов
+docker-compose logs -f
+
+# Посмотреть логи конкретного сервиса
+docker-compose logs -f order-service
+docker-compose logs -f notification-service
+
+# Остановить всё
+docker-compose down
+
+# Посмотреть, какие контейнеры запущены
+docker-compose ps
+
+# Пересобрать образы и запустить заново
+docker-compose up --build
 ```
 
-### Используя Docker Compose
-```bash
-docker-compose up -d           # Запустить в фоне
-docker-compose logs -f         # Просмотр логов
-docker-compose down            # Остановить сервисы
-docker-compose ps              # Список запущенных сервисов
-```
+### Проверка здоровья сервисов
 
-### Проверка здоровья
 ```bash
 curl http://localhost:8080/health
 curl http://localhost:8081/health
 ```
 
-## 📝 Пример рабочего процесса
+Оба должны вернуть 200 OK.
+
+## 📝 Полный пример работы
+
+Вот я запускаю проект, создаю заказ, проверяю, что уведомление пришло, отменяю заказ:
 
 ```bash
-# 1. Запустите сервисы
+# Запустить всё
 docker-compose up -d
 
-# 2. Дождитесь готовности (проверьте логи)
-docker-compose logs
+# Дождаться загрузки (примерно 5 секунд)
+sleep 5
 
-# 3. Создайте первый заказ
+# Создаём заказ
 RESPONSE=$(curl -s -X POST http://localhost:8080/api/orders \
   -H "Content-Type: application/json" \
   -d '{
     "customer_name": "Jane Smith",
-    "product": "Mouse",
+    "product": "Мышка",
     "quantity": 2,
     "price": 25.99
   }')
 
+# Берём ID заказа из ответа
 ORDER_ID=$(echo $RESPONSE | jq -r '.data.id')
-echo "Создан заказ: $ORDER_ID"
+echo "✅ Заказ создан с ID: $ORDER_ID"
 
-# 4. Проверьте создание
-curl http://localhost:8080/api/orders/$ORDER_ID
+# Проверяем, создался ли заказ
+echo "📦 Информация о заказе:"
+curl http://localhost:8080/api/orders/$ORDER_ID | jq .
 
-# 5. Подождите обработки уведомления
+# Подождём, пока уведомление обработается
 sleep 1
 
-# 6. Проверьте уведомления
-curl http://localhost:8081/api/notifications
+# Проверяем уведомления
+echo "📢 Уведомления:"
+curl http://localhost:8081/api/notifications | jq .
 
-# 7. Отмените заказ
+# Отменяем заказ
+echo "❌ Отменяю заказ..."
 curl -X PATCH http://localhost:8080/api/orders/$ORDER_ID/cancel
 
-# 8. Посмотрите уведомление об отмене
-curl http://localhost:8081/api/notifications
+# Снова проверяем уведомления (теперь их два!)
+echo "📢 Обновленные уведомления:"
+curl http://localhost:8081/api/notifications | jq .
+
+# Останавливаем
+docker-compose down
 ```
 
-## 🐛 Решение проблем
+## 🐛 Если что-то пошло не так
 
-### Сервисы не запускаются?
+### Сервисы не запускаются
+
 ```bash
 # Проверьте логи
 docker-compose logs
 
-# Пересоберите образы
-docker-compose build --no-cache
-
-# Начните заново
+# Если помогает, пересоберите всё с нуля
 docker-compose down -v
-docker-compose up --build
+docker-compose build --no-cache
+docker-compose up
 ```
 
-### Порт уже используется?
+### "Port already in use" — порт занят
+
+Это значит, что на порте 8080 или 8081 уже что-то слушает.
+
 ```bash
-# Найти процесс, использующий порт 8080
 # Windows:
 netstat -ano | findstr :8080
-
-# Завершить процесс
 taskkill /PID <PID> /F
 
 # macOS/Linux:
@@ -167,65 +224,54 @@ lsof -i :8080
 kill -9 <PID>
 ```
 
-### Проблемы с подключением БД?
+### Проблемы с PostgreSQL
+
 ```bash
-# Проверьте PostgreSQL
+# Проверьте логи БД
 docker-compose logs postgres
 
-# Проверьте доступность БД
-docker-compose exec postgres pg_isready
-
-# Подключитесь к БД
-docker-compose exec postgres psql -U postgres -d microservices
+# Подключитесь к БД и посмотрите таблицы
+docker-compose exec postgres psql -U postgres -d microservices -c "\dt"
 ```
 
-### Проблемы с Redis?
+### Проблемы с Redis
+
 ```bash
 # Проверьте Redis
 docker-compose logs redis
 
-# Проверьте Redis
+# Пингуем Redis
 docker-compose exec redis redis-cli ping
 ```
 
-## 📚 Следующие шаги
+## 💡 Что я здесь показываю
 
-1. **Прочитайте документацию**
-   - Смотрите [README.md](README.md) для полной документации
-   - Проверьте все API endpoints
-   - Просмотрите локальную разработку
+Этот проект демонстрирует, что я умею:
 
-2. **Исследуйте код**
-   - Смотрите реализацию сервисов
-   - Изучите схему базы данных
-   - Проверьте структуру Redis событий
+- ✅ **Микросервисная архитектура** — два независимых сервиса, каждый отвечает за свою часть
+- ✅ **Event-Driven Design** — используется Redis Pub/Sub для асинхронной коммуникации между сервисами
+- ✅ **REST API** — правильно спроектированные endpoints с правильными HTTP методами
+- ✅ **PostgreSQL** — работаю с реальной БД, понимаю схемы и миграции
+- ✅ **Docker & Docker Compose** — могу контейнеризировать приложения и управлять ими
+- ✅ **Обработка ошибок** — приложение не падает при ошибках
+- ✅ **Логирование** — в логах видно, что происходит в приложении
+- ✅ **Чистая архитектура** — код хорошо организован, легко добавлять новые функции
 
-3. **Модифицируйте и расширяйте**
-   - Добавьте новые endpoints
-   - Создайте дополнительные сервисы
-   - Реализуйте новые функции
+## 🚀 Что дальше?
 
-4. **Разверните в production**
-   - Отправьте на GitHub
-   - Настройте CI/CD
-   - Разверните на облако (AWS/GCP/Azure)
+Если вам понравилось, вот что я планирую добавить:
 
-## 💡 Советы для портфолио
+1. **Аутентификация** — JWT токены для защиты API
+2. **Тесты** — unit и integration тесты с >80% покрытием
+3. **Метрики** — Prometheus и Grafana для мониторинга
+4. **Кэширование** — Redis для кэширования часто запрашиваемых данных
+5. **gRPC** — дополнительный протокол для межсервисной коммуникации
+6. **Kubernetes** — развёртывание в k8s
 
-Этот проект демонстрирует:
-- ✅ **Архитектура микросервисов** — два независимых сервиса
-- ✅ **Event-Driven дизайн** — Redis для асинхронной коммуникации
-- ✅ **Дизайн БД** — PostgreSQL с правильной схемой
-- ✅ **REST API** — стандартные HTTP endpoints
-- ✅ **Docker** — оркестровка контейнеров
-- ✅ **Чистый код** — хорошо организованная структура
-- ✅ **Обработка ошибок** — правильное управление ошибками
-- ✅ **Логирование** — структурированное логирование
+## 📞 Вопросы?
 
-**Совет**: Добавьте этот проект на GitHub с хорошей документацией и у вас будет отличный портфолио!
+Если у вас есть вопросы или вы нашли баг, [откройте issue](https://github.com/Alliazix/go-microservices/issues) на GitHub!
 
 ---
 
-**Удачи в кодировании! 🎉**
-
-Нужна помощь? Проверьте документацию или откройте issue на GitHub!
+**Happy coding! 🎉**
