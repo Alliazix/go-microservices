@@ -1,26 +1,27 @@
-# Quick Start Guide
+# Руководство быстрого старта
 
-## 🚀 5-Minute Startup
+## 🚀 Запуск за 5 минут
 
-### Prerequisites
-- Docker & Docker Compose installed
+### Требования
+- Docker и Docker Compose установлены
 - Git
 
-### Step 1: Clone and navigate
+### Шаг 1: Клонируйте репозиторий
 ```bash
-cd c:\Users\Asus\Desktop\go_project
+git clone https://github.com/Alliazix/go-microservices.git
+cd go-microservices
 ```
 
-### Step 2: Start services
+### Шаг 2: Запустите сервисы
 ```bash
 docker-compose up --build
 ```
 
-Wait for all services to be healthy (you'll see "Notification Service started successfully" and "Order Service started successfully")
+Ожидайте, пока все сервисы будут готовы (вы увидите сообщения "Notification Service started successfully" и "Order Service started successfully")
 
-### Step 3: Test it out
+### Шаг 3: Протестируйте
 
-#### Terminal 1: Create an order
+#### Терминал 1: Создайте заказ
 ```bash
 curl -X POST http://localhost:8080/api/orders \
   -H "Content-Type: application/json" \
@@ -32,7 +33,7 @@ curl -X POST http://localhost:8080/api/orders \
   }'
 ```
 
-You'll get back:
+Вы получите ответ:
 ```json
 {
   "success": true,
@@ -45,70 +46,70 @@ You'll get back:
 }
 ```
 
-#### Terminal 2: Get notifications
+#### Терминал 2: Получите уведомления
 ```bash
 curl http://localhost:8081/api/notifications | jq .
 ```
 
-You should see a notification was created for the order!
+Вы должны увидеть уведомление о созданном заказе!
 
-#### Terminal 3: Cancel the order
+#### Терминал 3: Отмените заказ
 ```bash
 curl -X PATCH http://localhost:8080/api/orders/{order-id}/cancel
 ```
 
-#### Terminal 4: Check notifications again
+#### Терминал 4: Проверьте уведомления снова
 ```bash
 curl http://localhost:8081/api/notifications | jq .
 ```
 
-Now you'll see a cancellation notification too!
+Теперь вы увидите также уведомление об отмене!
 
-## 📊 Service URLs
+## 📊 URLs сервисов
 
-| Service | URL | Purpose |
+| Сервис | URL | Назначение |
 |---------|-----|---------|
-| **Order Service** | http://localhost:8080 | Create & manage orders |
-| **Notification Service** | http://localhost:8081 | View notifications |
-| **PostgreSQL** | localhost:5432 | Database |
-| **Redis** | localhost:6379 | Message Queue |
+| **Order Service** | http://localhost:8080 | Создание и управление заказами |
+| **Notification Service** | http://localhost:8081 | Просмотр уведомлений |
+| **PostgreSQL** | localhost:5432 | База данных |
+| **Redis** | localhost:6379 | Очередь сообщений |
 
-## 🛠️ Useful Commands
+## 🛠️ Полезные команды
 
-### Using Make (if available)
+### Используя Make (если установлен)
 ```bash
-make up              # Start services
-make down            # Stop services
-make logs            # View all logs
-make seed-order      # Create test order
-make get-orders      # List all orders
-make get-notifications  # List all notifications
+make up              # Запустить сервисы
+make down            # Остановить сервисы
+make logs            # Просмотр логов
+make seed-order      # Создать тестовый заказ
+make get-orders      # Список всех заказов
+make get-notifications  # Список всех уведомлений
 ```
 
-### Using Docker Compose
+### Используя Docker Compose
 ```bash
-docker-compose up -d           # Start in background
-docker-compose logs -f         # View logs
-docker-compose down            # Stop services
-docker-compose ps              # List running services
+docker-compose up -d           # Запустить в фоне
+docker-compose logs -f         # Просмотр логов
+docker-compose down            # Остановить сервисы
+docker-compose ps              # Список запущенных сервисов
 ```
 
-### Health Checks
+### Проверка здоровья
 ```bash
 curl http://localhost:8080/health
 curl http://localhost:8081/health
 ```
 
-## 📝 Example Workflow
+## 📝 Пример рабочего процесса
 
 ```bash
-# 1. Start services
+# 1. Запустите сервисы
 docker-compose up -d
 
-# 2. Wait for services to be ready (check logs)
+# 2. Дождитесь готовности (проверьте логи)
 docker-compose logs
 
-# 3. Create your first order
+# 3. Создайте первый заказ
 RESPONSE=$(curl -s -X POST http://localhost:8080/api/orders \
   -H "Content-Type: application/json" \
   -d '{
@@ -119,108 +120,112 @@ RESPONSE=$(curl -s -X POST http://localhost:8080/api/orders \
   }')
 
 ORDER_ID=$(echo $RESPONSE | jq -r '.data.id')
-echo "Created order: $ORDER_ID"
+echo "Создан заказ: $ORDER_ID"
 
-# 4. Check it was created
+# 4. Проверьте создание
 curl http://localhost:8080/api/orders/$ORDER_ID
 
-# 5. Wait a moment for notification to process
+# 5. Подождите обработки уведомления
 sleep 1
 
-# 6. Check notifications
+# 6. Проверьте уведомления
 curl http://localhost:8081/api/notifications
 
-# 7. Cancel the order
+# 7. Отмените заказ
 curl -X PATCH http://localhost:8080/api/orders/$ORDER_ID/cancel
 
-# 8. See the cancellation notification
+# 8. Посмотрите уведомление об отмене
 curl http://localhost:8081/api/notifications
 ```
 
-## 🐛 Troubleshooting
+## 🐛 Решение проблем
 
-### Services won't start?
+### Сервисы не запускаются?
 ```bash
-# Check logs
+# Проверьте логи
 docker-compose logs
 
-# Rebuild images
+# Пересоберите образы
 docker-compose build --no-cache
 
-# Start fresh
+# Начните заново
 docker-compose down -v
 docker-compose up --build
 ```
 
-### Port already in use?
+### Порт уже используется?
 ```bash
-# Find process using port 8080
+# Найти процесс, использующий порт 8080
 # Windows:
 netstat -ano | findstr :8080
 
-# Kill the process
+# Завершить процесс
 taskkill /PID <PID> /F
+
+# macOS/Linux:
+lsof -i :8080
+kill -9 <PID>
 ```
 
-### Database connection issues?
+### Проблемы с подключением БД?
 ```bash
-# Check PostgreSQL
+# Проверьте PostgreSQL
 docker-compose logs postgres
 
-# Ping database
+# Проверьте доступность БД
 docker-compose exec postgres pg_isready
 
-# Connect to database
+# Подключитесь к БД
 docker-compose exec postgres psql -U postgres -d microservices
 ```
 
-### Redis connection issues?
+### Проблемы с Redis?
 ```bash
-# Check Redis
+# Проверьте Redis
 docker-compose logs redis
 
-# Ping Redis
+# Проверьте Redis
 docker-compose exec redis redis-cli ping
 ```
 
-## 📚 Next Steps
+## 📚 Следующие шаги
 
-1. **Read the documentation**
-   - See [README.md](README.md) for full documentation
-   - Check [API_TESTING.md](API_TESTING.md) for all API endpoints
-   - Review [DEVELOPMENT.md](DEVELOPMENT.md) for local development
+1. **Прочитайте документацию**
+   - Смотрите [README.md](README.md) для полной документации
+   - Проверьте все API endpoints
+   - Просмотрите локальную разработку
 
-2. **Explore the code**
-   - Look at the service implementations
-   - Review the database schema
-   - Check the Redis event structure
+2. **Исследуйте код**
+   - Смотрите реализацию сервисов
+   - Изучите схему базы данных
+   - Проверьте структуру Redis событий
 
-3. **Modify and extend**
-   - Add new endpoints
-   - Create additional services
-   - Implement new features
+3. **Модифицируйте и расширяйте**
+   - Добавьте новые endpoints
+   - Создайте дополнительные сервисы
+   - Реализуйте новые функции
 
-4. **Deploy to production**
-   - Push to GitHub
-   - Set up CI/CD
-   - Deploy to cloud (AWS/GCP/Azure)
+4. **Разверните в production**
+   - Отправьте на GitHub
+   - Настройте CI/CD
+   - Разверните на облако (AWS/GCP/Azure)
 
-## 💡 Portfolio Tips
+## 💡 Советы для портфолио
 
-This project demonstrates:
-- ✅ **Microservices Architecture** - Two independent services
-- ✅ **Event-Driven Design** - Redis for async communication
-- ✅ **Database Design** - PostgreSQL with proper schema
-- ✅ **REST API** - Standard HTTP endpoints
-- ✅ **Docker** - Container orchestration
-- ✅ **Clean Code** - Well-organized structure
-- ✅ **Error Handling** - Proper error management
-- ✅ **Logging** - Structured logging
+Этот проект демонстрирует:
+- ✅ **Архитектура микросервисов** — два независимых сервиса
+- ✅ **Event-Driven дизайн** — Redis для асинхронной коммуникации
+- ✅ **Дизайн БД** — PostgreSQL с правильной схемой
+- ✅ **REST API** — стандартные HTTP endpoints
+- ✅ **Docker** — оркестровка контейнеров
+- ✅ **Чистый код** — хорошо организованная структура
+- ✅ **Обработка ошибок** — правильное управление ошибками
+- ✅ **Логирование** — структурированное логирование
 
-**Pro tip**: Add this to your GitHub with good documentation and you've got a solid portfolio project!
+**Совет**: Добавьте этот проект на GitHub с хорошей документацией и у вас будет отличный портфолио!
 
 ---
 
-**Happy coding! 🎉**
+**Удачи в кодировании! 🎉**
 
-Need help? Check the docs or open an issue on GitHub!
+Нужна помощь? Проверьте документацию или откройте issue на GitHub!
